@@ -2,6 +2,8 @@ import threading
 import random
 import time
 import math
+import matplotlib.pyplot as plt
+import numpy as np
 
 num_routers = 50
 routers = []
@@ -10,6 +12,52 @@ sender_index = 0
 receiver_index = 0
 visited = []
 done = False
+
+
+def plot_routers():
+    unvisited_routers = [i.index for i in routers if i.index not in visited]
+    print(unvisited_routers)
+    plt.scatter(routers[sender_index].x, routers[sender_index].y, color='blue')
+    plt.scatter(routers[receiver_index].x, routers[receiver_index].y, color='red')
+    x = []
+    y = []
+    for item in unvisited_routers:
+        if item != sender_index and item != receiver_index:
+            x.append(routers[item].x)
+            y.append(routers[item].y)
+    plt.scatter(x, y, color=['black' for i in range(len(x))])
+    x = []
+    y = []
+    for item in visited:
+        if item != sender_index and item != receiver_index:
+            x.append(routers[item].x)
+            y.append(routers[item].y)
+    plt.scatter(x, y, color=['green' for i in range(len(x))])
+    x = []
+    y = []
+    for item in visited:
+        x.append(routers[item].x)
+        y.append(routers[item].y)
+    plt.plot(x, y)
+    plt.show()
+
+
+def angle(j, i):
+    ang1 = np.arctan2(routers[j].y, routers[j].x)
+    ang2 = np.arctan2(routers[i].y, routers[i].x)
+    return np.rad2deg((ang1 - ang2) % (2 * np.pi))
+
+
+def calculate_theta(i):
+    theta = np.arccos( router_range/(2*distance_btw_routers(i, receiver_index)))
+    return theta
+
+
+def calculate_angles(n, s):
+    angles = {}
+    for item in n:
+        angles[item] = (angle(item, s)/calculate_theta(s))
+    return angles
 
 
 def distance_btw_routers(router1, router2):
@@ -43,19 +91,21 @@ def least_cost(s, n):
         distance = distance_cost(s, n)
         energy = energy_cost(n, distance)
         p_cost = p_costs(s, n)
+        angles_cost = calculate_angles(n, s)
         for item in n:
-            final_costs[item] = energy[item]/p_cost[item]
+            final_costs[item] = energy[item]*angles_cost[item]/p_cost[item]
         if final_costs == {}:
             return -1
         ind = min(final_costs, key=final_costs.get)
-        print(ind)
-        print(visited)
-        print(n)
+        #print(ind)
+        #print(visited)
+        #print(n)
         if ind in visited:
             del n[n.index(ind)]
             #del distance[ind]
         else:
             #visited.append(ind)
+            print(final_costs)
             return ind
 
 
@@ -148,4 +198,6 @@ def main():
         routers[sender_index].start()
     while not done:
         pass
+    print(visited)
+    plot_routers()
 main()
