@@ -5,13 +5,14 @@ import math
 import matplotlib.pyplot as plt
 import numpy as np
 
-num_routers = 50
+num_routers = 250
 routers = []
-router_range = 35
+router_range = 25
 sender_index = 0
 receiver_index = 0
 visited = []
 done = False
+receive_status = False
 
 
 def plot_routers():
@@ -39,6 +40,10 @@ def plot_routers():
         x.append(routers[item].x)
         y.append(routers[item].y)
     plt.plot(x, y)
+    if receive_status:
+        x = [routers[visited[len(visited)-1]].x, routers[receiver_index].x]
+        y = [routers[visited[len(visited)-1]].y, routers[receiver_index].y]
+        plt.plot(x, y, color='red')
     plt.show()
 
 
@@ -93,10 +98,10 @@ def least_cost(s, n):
         p_cost = p_costs(s, n)
         angles_cost = calculate_angles(n, s)
         for item in n:
-            final_costs[item] = energy[item]*angles_cost[item]/p_cost[item]
+            final_costs[item] = energy[item]*angles_cost[item]*routers[item].congestion/p_cost[item]
         if final_costs == {}:
             return -1
-        ind = min(final_costs, key=final_costs.get)
+        ind = max(final_costs, key=final_costs.get)
         #print(ind)
         #print(visited)
         #print(n)
@@ -110,7 +115,7 @@ def least_cost(s, n):
 
 
 class Router(threading.Thread):
-    def __init__(self, i, x, y):
+    def __init__(self, i, x, y, rho):
         threading.Thread.__init__(self)
         self.index = i
         self.x = x
@@ -119,6 +124,7 @@ class Router(threading.Thread):
         self.Sender = 0
         self.Receiver = 0
         self.neighbours = []
+        self.congestion = rho
 
     def set_as_sender(self):
         self.Sender = 1
@@ -153,6 +159,8 @@ class Router(threading.Thread):
                 routers[receiver_index].buffer.extend(self.buffer)
                 global done
                 done = True
+                global receive_status
+                receive_status = True
                 print("Data received : {0} from Router {1} to Router {2}"
                       .format(routers[receiver_index].buffer, self.index, receiver_index))
             else:
@@ -177,7 +185,7 @@ class Router(threading.Thread):
 def main():
     print("Welcome.")
     for i in range(num_routers):
-        routers.append(Router(i, random.randint(1, 99), random.randint(1, 99)))
+        routers.append(Router(i, random.randint(1, 99), random.randint(1, 99), random.uniform(0.3,0.7)))
     global sender_index, receiver_index
     sender_index = random.randint(0, num_routers-1)
     while 1:
